@@ -8,23 +8,44 @@ class Node {
 
 class Tree {
     constructor() {
-        //this.array = array;
-        this.root = null; //return val of buildtree will be distilled down to root through recursion
+        this.root = null;
+        this.dataArray = [];
     }
 
-    buildTree(array, start, end) {
-        if(start > end) { //base case
-            return null;
-        } else {
-            let mid = parseInt((start + end) / 2);
-            let node = new Node(array[mid]);
-            node.left = this.buildTree(array, start, mid - 1);
-            node.right = this.buildTree(array, mid + 1, end);
-            this.root = node;
-        }
+    buildTree(array) { //take an array, iterate through array, and then call insert on each val
+        // if(this.root == null) { //if there is no root (hasn't been set on first insertion or has been cleared), take new root from center of passed in (sorted) array. (for rebalancing)
+        //     let mid = (array.length / 2) - 1;
+        //     let newNode = new Node(array[mid]);
+        //     //this.insert(array[mid]);
+        //     this.root = newNode;
+        //     array.splice(mid, 1);
+        // }
+        array.forEach(element => {
+            this.insert(element);
+        })
+    }
+
+//     buildTree(array, start, end) {
+//         if(start > end) { //base case
+//             return null;
+//         } else {
+//             let mid = parseInt((start + end) / 2);
+//             let node = new Node(array[mid]);
+//             node.left = this.buildTree(array, start, mid - 1);
+//             node.right = this.buildTree(array, mid + 1, end);
+//             this.root = node;
+//         }
+// }
+
+    clearTree() {
+        this.root = null;
+        this.dataArray.splice(0);
+        console.log('Tree cleared');
     }
 
     insert(data) { //helper method to create a new node to be inserted, then calls insertNode
+        console.log('Inserting: ' + data);
+        this.dataArray.push(data);
         let newNode = new Node(data);
         if(this.root === null) { //if root is null then node will be added to tree and made root
             this.root = newNode;
@@ -34,13 +55,14 @@ class Tree {
     }
 
     insertNode(node, newNode) { //inserts a new node in a tree. Moves over tree to find lcoation to insert node with given data
+        //important: this function will build our tree in such a way that it can be called a BST (proof: inorder traversal should yield smallest to largest)
         if(newNode.data < node.data) { //if less, go left
-            if(node.left === null) { //base, but instead of returning we set the 'left' of the node to the new node.
+            if(node.left === null) { //base
                 node.left = newNode;
             } else {
                 this.insertNode(node.left, newNode);
             }
-        } else { //otherwise, go right
+        } else { //otherwise if greater, go right
             if(node.right === null) { //base
                 node.right = newNode;
             } else {
@@ -49,11 +71,16 @@ class Tree {
         }
     }
 //3 depth-first traversals here:
-    //note that the only thing that really changes or matters here, is the order in which the algorithm does its magic.
-    inorder(node) {//traverses left, root, right
+    //note that the only thing that really changes or matters here, is the order in which the recursive calls and console.log are made.
+    temp = []; //this will be used for rebalancing tree function.
+
+    inorder(node) { //traverses left, root, right
         if(node !== null) { //base
             this.inorder(node.left);
-            console.log(node.data); //this is 'reading' the root
+
+            //console.log(node.data); //this is 'reading' the root
+            this.temp.push(node.data);
+
             this.inorder(node.right);
         }
     }
@@ -97,8 +124,8 @@ class Tree {
     }
 
     levelorderRecursive = function(root) { 
-        let q = []; //NOTE: we have to set up our function within a callback like this because we need an array that isn't initalized within the scope of our recursing function
-                    //so it doesn't reset with each call. The recursive version of this will not 'shift()' any elements, so isn't really a queue?
+        let q = []; //NOTE: we have to set up our function as a closure like this because we need an array that isn't initalized within the scope of our recursing function
+                    //so it doesn't reset with each call.
         function lot(node, l) { //Params: node is root, lowercase L here represents the 'level' of our passed in node. So, 0 when we call it
             if(!node) return; //base
             if(q[l]) { //if there is an array at the corresponding index(level), push our node data onto it
@@ -154,18 +181,18 @@ class Tree {
         //so you essentially want to traverse the method with level order, incrementing as you go; very similar to our levelorderRecursive function.
         let arr = [];
 
-        function heightRec(node, l) { //use counter to determine number of levels?
+        function heightRec(node, l) { //'l' will represent the 'level'
             if(!node) return; //base
-            if(arr[l]) {  //this logic separates the queue up by levels, each index is a level.
+            if(arr[l]) {  //if there is an array at level, push current node.data to it
                 arr[l].push(node.data);
-            } else {
+            } else {      //otherwise if there is not an array at level, create one and put our node.data into it.
                 arr[l] = [node.data];
             }
             heightRec(node.left, l + 1);
             heightRec(node.right, l + 1)
         }
-        heightRec(root, 0); //run heightRec with passed in root, 0 starting level
-        return arr.length; //the height will be the length of our array of arrays. (aka, the # of levels)
+        heightRec(root, 0); //pass in root, 0 starting level
+        return arr.length; //the height will be the length of our array of arrays. (the # of levels)
     }
     
     depth(data, root) {
@@ -174,7 +201,7 @@ class Tree {
         for(let i = 0 ; i < q.length; i++) {
             for(let p = 0; p < q[i].length; p++) {
                 if(q[i][p] == data) {
-                    console.log(`The depth of the ${q[i][p]} is = ` + (i + 1)); //correct index of q, plus one, to offset 0-index array
+                    console.log(`The depth of the ${q[i][p]} node is = ` + (i + 1)); //correct index of q, plus one, to offset 0-index array
                 }
             }
         }
@@ -182,8 +209,62 @@ class Tree {
 
     isBalanced = function(root) { //check on tree - a balanced tree is one where the difference b/w heights 
         //of left subtree and right subtree of every node is not more than 1.
-        
+        //we could just call height() w/ root.left and root.right, but it seems like better practice to
+        //once again traverse the tree.
+        let countLeft = 0;
+        let countRight = 0;
 
+        function leftTrav(node) {
+            if(node.left == null) {
+                return console.log(`left has ${countLeft + 1} height`);
+            } else {
+                countLeft++;
+                leftTrav(node.left);
+            }
+        }
+
+        function rightTrav(node) {
+            if(node.right == null) {
+                return console.log(`right has ${countRight + 1} height`);
+            } else {
+                countRight++;
+                rightTrav(node.right);
+            }
+        }
+
+        leftTrav(root);
+        rightTrav(root);
+
+        if(root == null) {
+            console.log('Root is null.')
+            return true;
+        }
+        if((countLeft == countRight - 1) || (countLeft == countRight + 1) || (countLeft == countRight)) {
+            console.log('The tree is balanced!');
+            return true;
+        } else {
+            console.log('Tree is not balanced.');
+            return false;
+        }
+    } //end isBalanced()
+
+    //this function will rebalance an unbalanced tree. Essentially will select a new root from array, and build the tree with that root in such a way that it becomes balanced.
+    //(aka, change the root?)
+    rebalance(root) {
+        let left = this.height(root.left);
+        let right = this.height(root.right);
+        let n = left - right;
+        if(n == 1 || n == 0 || n == -1) { //base case, tree is balanced.
+            return console.log('Tree is balanced');
+        }
+        //traverse through BST inorder, add Nodes to temp array - 
+        //this.inorder(root);
+        //get the starter array:
+        let newArr = this.dataArray;
+        //then clear the old tree:
+        this.clearTree();
+        //and then rebuild the tree:
+        this.buildTree(newArr);
     }
 
     findMinNode(node) { //finds minimum node in tree, searching starts from given node
@@ -225,43 +306,63 @@ class Tree {
       }
 }
 
-// const arr1 = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-// let tree = new Tree();
-// let n = arr1.length;
-// //tree.buildTree(arr1, 0 , n - 1);
-// tree.buildTree(arr1, 0, n - 1);
-// //tree.prettyPrint(root);
-// //tree.prettyPrint(tree.root);
-// tree.inorder(tree.root);
-// console.log(tree);
+//old buildTree() which did a recursive binary search on the array
+//to build up node.left and node.right of each node, and created a sorted binary tree (BST).
+//buildTree(array, start, end) {
+// if(start > end) { //base case
+        //     return null;
+        // } else {
+        //     let mid = parseInt((start + end) / 2);
+        //     let node = new Node(array[mid]);
+        //     node.left = this.buildTree(array, start, mid - 1);
+        //     node.right = this.buildTree(array, mid + 1, end);
+        //     this.root = node;
+        // }
+// }
 
 let BST = new Tree();
-BST.insert(15);
-BST.insert(25);
-BST.insert(10);
-BST.insert(7);
-BST.insert(22);
-BST.insert(17);
+let startArr = [15, 25, 10, 7, 22, 17, 99, 100, 23, 123, 8, 13, 5, 9, 27];
+BST.dataArray = startArr;
+BST.buildTree(startArr);
+// BST.insert(15);
+// BST.insert(25);
+// BST.insert(10);
+// BST.insert(7);
+// BST.insert(22);
+// BST.insert(17);
+// BST.insert(99);
+// BST.insert(100);
+// BST.insert(23);
+// BST.insert(123);
+// BST.insert(8);
+// BST.insert(13);
+// BST.insert(5);
+// BST.insert(9);
+// BST.insert(27);
 
-//new
-BST.insert(99);
-BST.insert(100);
-BST.insert(1000);
-BST.insert(4000);
-BST.insert(8);
-
-BST.insert(13);
-BST.insert(5);
-BST.insert(9);
-BST.insert(27);
 let root = BST.getRootNode();
-BST.inorder(root);
+//BST.inorder(root); // an inorder traversal should prove that our binary tree is a BST, in that the elements should print in-order.
 BST.remove(7);
-root = BST.getRootNode();//reset
-BST.inorder(root);
 BST.prettyPrint(root);
-//console.log(BST.find(27)); //works
-//console.log(BST.levelorder(root)); //seems to work
-//console.log(BST.levelorderRecursive(root));
-//console.log(BST.height(root));
-BST.depth(8, root);
+// //console.log(BST.find(27)); //lookup works
+// //console.log(BST.levelorderIterative(root));
+// //console.log(BST.levelorderRecursive(root));
+console.log("height: " + BST.height(root));
+// BST.depth(8, root);
+BST.isBalanced(root);
+//testing rebalance:
+BST.insert(1235);
+BST.insert(4545);
+BST.insert(1123);
+BST.insert(1222);
+BST.isBalanced(root);
+console.log('old root: ' + BST.root.data);
+BST.rebalance(root);
+root = BST.getRootNode();
+console.log('new root: ' + BST.root.data);
+BST.isBalanced(root);
+
+BST.prettyPrint(root);
+// BST.temp.forEach(node => {
+//     console.log(node.data);
+// })

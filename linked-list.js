@@ -1,4 +1,4 @@
-//okay so here we're gonna try to make a linkedlist with factory functions?
+//okay so here we're gonna try to make a linkedlist with factory functions
 
 function Node(element) {
     this.element = element;
