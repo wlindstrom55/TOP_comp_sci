@@ -13,18 +13,13 @@ class Tree {
     }
 
     buildTree(array) { //take an array, iterate through array, and then call insert on each val
-        // if(this.root == null) { //if there is no root (hasn't been set on first insertion or has been cleared), take new root from center of passed in (sorted) array. (for rebalancing)
-        //     let mid = (array.length / 2) - 1;
-        //     let newNode = new Node(array[mid]);
-        //     //this.insert(array[mid]);
-        //     this.root = newNode;
-        //     array.splice(mid, 1);
-        // }
         array.forEach(element => {
             this.insert(element);
-        })
+        });
     }
 
+    //these versions of buildTree only work with a sorted array since they pick root from the middle.
+    //after I built my insertion function, decided to retire these but keep around for reference.
 //     buildTree(array, start, end) {
 //         if(start > end) { //base case
 //             return null;
@@ -36,16 +31,40 @@ class Tree {
 //             this.root = node;
 //         }
 // }
+    
+    // buildTree() {
+    //  if(this.root == null) { //if there is no root (hasn't been set on first insertion or has been cleared), take new root from center of passed in (sorted) array. (for rebalancing)
+    //         let mid = (array.length / 2) - 1;
+    //         let newNode = new Node(array[mid]);
+    //         //this.insert(array[mid]);
+    //         this.root = newNode;
+    //         array.splice(mid, 1);
+    //     }
+    // }
+    //also keeping this around for reference
+    // clearTree() {
+    //     root = null; //can't just do this, it deletes the tree but doesn't actually change the root to null.
+    //     console.log('Tree cleared');
+    // }
 
-    clearTree() {
-        this.root = null;
-        this.dataArray.splice(0);
-        console.log('Tree cleared');
+    deleteTree(node) { 
+        if(node == null) return; //base
+        //delete both subtrees
+        this.deleteTree(node.left);
+        this.deleteTree(node.right);
+        console.log('Deleting node: ' + node.data);
+    }
+
+    deleteTreeRef(nodeRef) { //wrapper function that deletes the tree and sets root node as null.
+        this.deleteTree(nodeRef);
+        nodeRef = null;
     }
 
     insert(data) { //helper method to create a new node to be inserted, then calls insertNode
         console.log('Inserting: ' + data);
-        this.dataArray.push(data);
+        if(this.find(this.root, data)) { //check for duplicates!
+            return null;
+        }
         let newNode = new Node(data);
         if(this.root === null) { //if root is null then node will be added to tree and made root
             this.root = newNode;
@@ -71,16 +90,10 @@ class Tree {
         }
     }
 //3 depth-first traversals here:
-    //note that the only thing that really changes or matters here, is the order in which the recursive calls and console.log are made.
-    temp = []; //this will be used for rebalancing tree function.
-
     inorder(node) { //traverses left, root, right
-        if(node !== null) { //base
+        if(node !== null) {
             this.inorder(node.left);
-
-            //console.log(node.data); //this is 'reading' the root
-            this.temp.push(node.data);
-
+            console.log(node.data); //this is 'reading' the root
             this.inorder(node.right);
         }
     }
@@ -101,14 +114,14 @@ class Tree {
         }
     }
 
-//this is breadth-first traversal. time-complexity is O(n), relative to number of nodes. 
+//this is breadth-first traversal
     levelorderIterative(node) { //should take another function as param - this will traverse the tree breadth-first using a queue. ( array acting as FIFO queue )
         if(node === null) { //base case
             return;
         } else {
             let q = [];
             q.push(node);
-            //iterative solution here!
+            //iterative solution
             while(q.length != 0) { //iterate while queue is not empty (at least one discovered node)
                 let curr = q.shift(); //take off the front of queue.
                 if(curr.left != null) {
@@ -117,7 +130,6 @@ class Tree {
                 if(curr.right != null) {
                     q.push(curr.right);
                 }
-                //console.log("levelOrder: current node is: " + curr.toString());
                 return curr.data;
             }
         }
@@ -155,25 +167,34 @@ class Tree {
         } else if(key > node.data) { //if data to delete is greater than roots data then move to right subtree.
             node.right = this.removeNode(node.right, key);
             return node;
-        } else { //if data is similar to the roots data, then delete this node
+        } else { 
+            //if data is similar to the roots data, then delete this node
             if(node.left === null && node.right === null) { //deleting node with no children (leaf)
                 node = null;
                 return node;
             }
             if(node.left === null) { //deleting node with one child (left)
-                node = node.right;
+                node = node.right; //replace node with its child!
                 return node;
             } else if(node.right === null) { //(right)
                 node = node.left;
                 return node;
             }
-            //deleting node with two children
+            //otherwise, you're deleting a node with two children
             //minimum node of the right subtree is stored in aux.
             let aux = this.findMinNode(node.right);
-            node.data = aux.data;
+            node.data = aux.data; //then set node to be deleted to data of min node
 
             node.right = this.removeNode(node.right, aux.data);
             return node;
+        }
+    }
+
+    findMinNode(node) { //finds minimum node in tree, searching starts from given node
+        if(node.left === null) { //basically this iterates through node.left until null (finds the leaf)
+            return node;
+        } else {
+            return this.findMinNode(node.left);
         }
     }
 
@@ -209,37 +230,40 @@ class Tree {
 
     isBalanced = function(root) { //check on tree - a balanced tree is one where the difference b/w heights 
         //of left subtree and right subtree of every node is not more than 1.
-        //we could just call height() w/ root.left and root.right, but it seems like better practice to
-        //once again traverse the tree.
-        let countLeft = 0;
-        let countRight = 0;
+        //originally tried to recursively check subtrees and increment a counter, but had issues 
+        //especially after resetting the root node. Switched to using height()
+        // let countLeft = 0;
+        // let countRight = 0;
 
-        function leftTrav(node) {
-            if(node.left == null) {
-                return console.log(`left has ${countLeft + 1} height`);
-            } else {
-                countLeft++;
-                leftTrav(node.left);
-            }
-        }
+        let left = this.height(root.left);
+        let right = this.height(root.right);
 
-        function rightTrav(node) {
-            if(node.right == null) {
-                return console.log(`right has ${countRight + 1} height`);
-            } else {
-                countRight++;
-                rightTrav(node.right);
-            }
-        }
+        // function leftTrav(node) {
+        //     if(node.left == null) {
+        //         return console.log(`left has ${left} height`);
+        //     } else {
+        //         countLeft++;
+        //         leftTrav(node.left);
+        //     }
+        // }
 
-        leftTrav(root);
-        rightTrav(root);
+        // function rightTrav(node) {
+        //     if(node.right == null) {
+        //         return console.log(`right has ${right} height`);
+        //     } else {
+        //         countRight++;
+        //         rightTrav(node.right);
+        //     }
+        // }
+
+        // leftTrav(root);
+        // rightTrav(root);
 
         if(root == null) {
             console.log('Root is null.')
             return true;
         }
-        if((countLeft == countRight - 1) || (countLeft == countRight + 1) || (countLeft == countRight)) {
+        if((left == right - 1) || (left == right + 1) || (left == right)) {
             console.log('The tree is balanced!');
             return true;
         } else {
@@ -248,31 +272,27 @@ class Tree {
         }
     } //end isBalanced()
 
-    //this function will rebalance an unbalanced tree. Essentially will select a new root from array, and build the tree with that root in such a way that it becomes balanced.
-    //(aka, change the root?)
+    //this function will rebalance an unbalanced tree. Essentially will select a new root from array,
+    // and build the tree with that root in such a way that it becomes balanced.
     rebalance(root) {
         let left = this.height(root.left);
         let right = this.height(root.right);
         let n = left - right;
-        if(n == 1 || n == 0 || n == -1) { //base case, tree is balanced.
-            return console.log('Tree is balanced');
+        if(n == 1 || n == 0 || n == -1) {
+            return console.log('Tree is already balanced');
         }
-        //traverse through BST inorder, add Nodes to temp array - 
-        //this.inorder(root);
+        if(left > right) { //if left side is larger, shift root to left child of root
+            this.root = root.left; 
+        }
+        else if(left < right) {
+            this.root = root.right;
+        }
         //get the starter array:
         let newArr = this.dataArray;
         //then clear the old tree:
-        this.clearTree();
+        this.deleteTreeRef(root);
         //and then rebuild the tree:
         this.buildTree(newArr);
-    }
-
-    findMinNode(node) { //finds minimum node in tree, searching starts from given node
-        if(node.left === null) { //basically this iterates through node.left until null (finds the leaf)
-            return node;
-        } else {
-            return this.findMinNode(node.left);
-        }
     }
 
     getRootNode() { //returns root node of a tree
@@ -287,6 +307,7 @@ class Tree {
         } else if(data > node.data) {
             return this.find(node.right, data); //if value is greater than data, search right
         } else { //if data is equal to the node data, return it
+            //let results = [];
             return node;
         }
     }
@@ -304,65 +325,93 @@ class Tree {
             // note: prefix is switched up here. 
         }
       }
+} //end Tree class
+
+function randomInt(max) {
+    return Math.ceil(Math.random() * max);
+}
+function randomArray(maxSize, maxNum) {
+    let arr = [];
+    let size = randomInt(maxSize);
+    for(let i = 0; i < size; i++) {
+        let num = randomInt(maxNum);
+        arr.push(num);
+    }
+    return arr;
 }
 
-//old buildTree() which did a recursive binary search on the array
-//to build up node.left and node.right of each node, and created a sorted binary tree (BST).
-//buildTree(array, start, end) {
-// if(start > end) { //base case
-        //     return null;
-        // } else {
-        //     let mid = parseInt((start + end) / 2);
-        //     let node = new Node(array[mid]);
-        //     node.left = this.buildTree(array, start, mid - 1);
-        //     node.right = this.buildTree(array, mid + 1, end);
-        //     this.root = node;
-        // }
-// }
-
-let BST = new Tree();
-let startArr = [15, 25, 10, 7, 22, 17, 99, 100, 23, 123, 8, 13, 5, 9, 27];
-BST.dataArray = startArr;
-BST.buildTree(startArr);
-// BST.insert(15);
-// BST.insert(25);
-// BST.insert(10);
-// BST.insert(7);
-// BST.insert(22);
-// BST.insert(17);
-// BST.insert(99);
-// BST.insert(100);
-// BST.insert(23);
-// BST.insert(123);
-// BST.insert(8);
-// BST.insert(13);
-// BST.insert(5);
-// BST.insert(9);
-// BST.insert(27);
-
-let root = BST.getRootNode();
-//BST.inorder(root); // an inorder traversal should prove that our binary tree is a BST, in that the elements should print in-order.
-BST.remove(7);
-BST.prettyPrint(root);
 // //console.log(BST.find(27)); //lookup works
 // //console.log(BST.levelorderIterative(root));
 // //console.log(BST.levelorderRecursive(root));
-console.log("height: " + BST.height(root));
+//console.log("height: " + BST.height(root));
 // BST.depth(8, root);
-BST.isBalanced(root);
-//testing rebalance:
-BST.insert(1235);
-BST.insert(4545);
-BST.insert(1123);
-BST.insert(1222);
-BST.isBalanced(root);
-console.log('old root: ' + BST.root.data);
-BST.rebalance(root);
-root = BST.getRootNode();
-console.log('new root: ' + BST.root.data);
+
+//1. Create a BST from an array of random numbers.
+console.log('\n\t\tStep 1: Create BST from random array...\n\t\t-----------------------------------\n');
+let startArr = randomArray(20, 200);
+console.log('start array is: ' + startArr);
+let BST = new Tree();
+BST.dataArray = startArr;
+BST.buildTree(startArr);
+let root = BST.getRootNode();
+BST.prettyPrint(root);
+console.log('right: ' + BST.height(root.right));
+console.log('left: ' + BST.height(root.left));
 BST.isBalanced(root);
 
+//2. confirm the tree is balanced by calling isBalanced
+console.log('\n\t\tStep 2: Rebalance tree if need be, confirm new balance...\n\t\t------------------------------------\n');
+while(BST.isBalanced(root) !== true) { 
+    BST.rebalance(root);
+    root = BST.getRootNode(); //this must be called to update our outer root var after each rebalance/tree deletion
+}
+BST.isBalanced(root);
 BST.prettyPrint(root);
-// BST.temp.forEach(node => {
-//     console.log(node.data);
-// })
+
+//.3 Print out all elements in level, pre, post, and in order
+console.log('\n\t\tStep 3: Print out all elements in level/pre/post/inorder traversal\n\t\t--------------------------------------------\n');
+console.log('Inorder: (should go from smallest to largest)\n');
+BST.inorder(root);
+console.log('\nLevelorder: (each subarray represents a level of the tree)\n');
+console.log(BST.levelorderRecursive(root));
+console.log('\nPreorder:\n');
+BST.preorder(root);
+console.log('\nPostorder:\n');
+BST.postorder(root);
+
+//.4 Unbalance the tree by adding several numbers > 100
+console.log("\n\t\tStep 4: Unbalancing the tree:\n\t\t----------------------------------\n")
+BST.insert(455);
+BST.insert(465);
+BST.insert(565);
+BST.insert(666);
+BST.insert(777);
+BST.insert(1122);
+
+//.5 Confirm tree is unbalanced by calling isBalanced
+console.log('\n\t\tStep 5: Confirm tree is unbalanced\n\t\t----------------------------------------\n')
+BST.isBalanced(root);
+BST.prettyPrint(root);
+
+//.6 Balance the tree by calling rebalance
+console.log('\n\t\tStep 6: Rebalance the tree again\n\t\t--------------------------------\n');
+while(BST.isBalanced(root) !== true) { 
+    BST.rebalance(root);
+    root = BST.getRootNode();
+}
+
+//7. Confirm that the tree is balanced by calling isBalanced
+console.log('\n\t\tStep 7: Confirm tree is rebalanced again\n\t\t--------------------------------------\n');
+BST.isBalanced(root);
+BST.prettyPrint(root);
+
+//8. Print out all elements in level, pre, post, and in order
+console.log('\n\t\tStep 8: Print out all elements again w/ our breadth-first and depth-first traversals\n\t\t------------------------------------------\n');
+console.log('Levelorder:\n');
+console.log(BST.levelorderRecursive(root));
+console.log('Preorder:\n');
+BST.preorder(root);
+console.log('Postorder:\n');
+BST.postorder(root);
+console.log('Inorder:\n');
+BST.inorder(root); 
